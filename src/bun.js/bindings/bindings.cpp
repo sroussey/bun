@@ -4891,14 +4891,17 @@ restart:
         bool anyHits = false;
         JSC::JSObject* objectToUse = prototypeObject.getObject();
         structure->forEachProperty(vm, [&](const PropertyTableEntry& entry) -> bool {
-            if ((entry.attributes() & (PropertyAttribute::Function)) == 0 && (entry.attributes() & (PropertyAttribute::Builtin)) != 0) {
+            const int attributes = entry.attributes();
+            if ((attributes & PropertyAttribute::Function) == 0 && (attributes & PropertyAttribute::Builtin) != 0) {
+                return true;
+            }
+            if ((attributes & PropertyAttribute::DontEnum) != 0) {
                 return true;
             }
             auto* prop = entry.key();
 
             if (prop == vm.propertyNames->constructor
-                || prop == vm.propertyNames->underscoreProto
-                || prop == vm.propertyNames->toStringTagSymbol)
+                || prop == vm.propertyNames->underscoreProto)
                 return true;
 
             if (clientData->builtinNames().bunNativePtrPrivateName() == prop)
@@ -4920,7 +4923,7 @@ restart:
                 }
             }
 
-            if (!propertyValue || propertyValue.isGetterSetter() && !((entry.attributes() & PropertyAttribute::Accessor) != 0)) {
+            if (!propertyValue || propertyValue.isGetterSetter() && !((attributes & PropertyAttribute::Accessor) != 0)) {
                 propertyValue = objectToUse->getIfPropertyExists(globalObject, prop);
             }
 
@@ -4985,10 +4988,8 @@ restart:
                 if (!object->getPropertySlot(globalObject, property, slot))
                     continue;
 
-                if ((slot.attributes() & PropertyAttribute::DontEnum) != 0) {
-                    if (property == vm.propertyNames->underscoreProto
-                        || property == vm.propertyNames->toStringTagSymbol)
-                        continue;
+                if ( property == vm.propertyNames->underscoreProto) {
+                    continue;
                 }
 
                 if (visitedProperties.contains(property))
@@ -5002,10 +5003,11 @@ restart:
 
                 JSC::JSValue propertyValue = jsUndefined();
 
-                if ((slot.attributes() & PropertyAttribute::DontEnum) != 0) {
-                    if ((slot.attributes() & PropertyAttribute::Accessor) != 0) {
+                const int attributes = slot.attributes();
+                if ((attributes & PropertyAttribute::DontEnum) != 0) {
+                   if ((attributes & PropertyAttribute::Accessor) != 0) {
                         propertyValue = slot.getPureResult();
-                    } else if (slot.attributes() & PropertyAttribute::BuiltinOrFunction) {
+                    } else if (attributes & PropertyAttribute::BuiltinOrFunction) {
                         propertyValue = slot.getValue(globalObject, property);
                     } else if (slot.isCustom()) {
                         propertyValue = slot.getValue(globalObject, property);
@@ -5014,7 +5016,7 @@ restart:
                     } else if (object->getOwnPropertySlot(object, globalObject, property, slot)) {
                         propertyValue = slot.getValue(globalObject, property);
                     }
-                } else if ((slot.attributes() & PropertyAttribute::Accessor) != 0) {
+                } else if ((attributes & PropertyAttribute::Accessor) != 0) {
                     propertyValue = slot.getPureResult();
                 } else {
                     propertyValue = slot.getValue(globalObject, property);
@@ -5093,26 +5095,12 @@ void JSC__JSValue__forEachPropertyOrdered(JSC__JSValue JSValue0, JSC__JSGlobalOb
             continue;
 
         if ((slot.attributes() & PropertyAttribute::DontEnum) != 0) {
-            if (property == vm.propertyNames->underscoreProto
-                || property == vm.propertyNames->toStringTagSymbol)
-                continue;
+            continue;
         }
 
         JSC::JSValue propertyValue = jsUndefined();
         auto scope = DECLARE_CATCH_SCOPE(vm);
-        if ((slot.attributes() & PropertyAttribute::DontEnum) != 0) {
-            if ((slot.attributes() & PropertyAttribute::Accessor) != 0) {
-                propertyValue = slot.getPureResult();
-            } else if (slot.attributes() & PropertyAttribute::BuiltinOrFunction) {
-                propertyValue = slot.getValue(globalObject, property);
-            } else if (slot.isCustom()) {
-                propertyValue = slot.getValue(globalObject, property);
-            } else if (slot.isValue()) {
-                propertyValue = slot.getValue(globalObject, property);
-            } else if (object->getOwnPropertySlot(object, globalObject, property, slot)) {
-                propertyValue = slot.getValue(globalObject, property);
-            }
-        } else if ((slot.attributes() & PropertyAttribute::Accessor) != 0) {
+        if ((slot.attributes() & PropertyAttribute::Accessor) != 0) {
             propertyValue = slot.getPureResult();
         } else {
             propertyValue = slot.getValue(globalObject, property);

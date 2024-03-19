@@ -135,6 +135,9 @@ myCustomName {
   [Symbol(Symbol.toStringTag)]: "myCustomName",
 }
 {
+  a: 1,
+}
+{
   "0": 1,
   "1": 2,
   "2": 3,

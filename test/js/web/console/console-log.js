@@ -112,6 +112,8 @@ const objectWithStringTag = {
 };
 console.log(objectWithStringTag);
 
+console.log(Object.defineProperty({ a: 1 }, "b", { enumerable: false, value: 2 }));
+
 console.log({ length: 4, 0: 1, 1: 2, 2: 3, 3: 4 });
 console.log([1, 2, 3]);
 function hole(array, ...ranges) {
